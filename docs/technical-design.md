@@ -50,6 +50,7 @@ MockForge 的技术方案需要优先满足以下目标：
 - 路由匹配：`path-to-regexp`
 - 随机数据：`@faker-js/faker`
 - 配置存储：本地 JSON 文件
+- 包管理工具：`pnpm`
 - 部署方式：Node 进程或 Docker 容器
 
 ### 3.2 前后端关系
@@ -701,8 +702,8 @@ MVP 默认允许所有来源，后续可以支持白名单。
 ### 16.1 本地开发
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 开发时：
@@ -714,8 +715,8 @@ npm run dev
 ### 16.2 生产构建
 
 ```bash
-npm run build
-npm run start
+pnpm build
+pnpm start
 ```
 
 构建过程：

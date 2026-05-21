@@ -7,10 +7,12 @@ build/
 coverage/
 .turbo/
 .vite/
+apps/server/public/
 
 # Runtime data
-data/
+data/*
 !data/.gitkeep
+.tmp/
 
 # Environment files
 .env

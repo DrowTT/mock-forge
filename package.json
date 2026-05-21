@@ -1,0 +1,17 @@
+{
+  "name": "mock-forge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.18.3",
+  "scripts": {
+    "dev": "pnpm --filter @mockforge/shared build && concurrently \"pnpm --filter @mockforge/server dev\" \"pnpm --filter @mockforge/web dev\"",
+    "build": "pnpm --filter @mockforge/shared build && pnpm --filter @mockforge/web build && node scripts/copy-web.mjs && pnpm --filter @mockforge/server build",
+    "start": "pnpm --filter @mockforge/server start",
+    "test": "pnpm --filter @mockforge/shared build && pnpm --filter @mockforge/shared test && pnpm --filter @mockforge/server test",
+    "typecheck": "pnpm --filter @mockforge/shared build && pnpm --filter @mockforge/shared typecheck && pnpm --filter @mockforge/server typecheck && pnpm --filter @mockforge/web typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

@@ -35,6 +35,14 @@ Key persistence rule:
 - Do not persist generated mock business data.
 - Generate mock response data randomly on each matching request.
 
+## Package Manager
+
+- Use `pnpm` only.
+- Do not use `npm` commands in this repository.
+- Keep `pnpm-workspace.yaml` as the workspace source of truth.
+- Keep `pnpm-lock.yaml` committed.
+- When adding scripts or documentation commands, use `pnpm` syntax.
+
 ## Working Principles
 
 - Prefer simple, explicit implementation over broad abstractions.
@@ -49,6 +57,7 @@ Key persistence rule:
 - Favor TypeScript-friendly structures and schemas if the project uses JavaScript/TypeScript.
 - Document configuration format changes in `docs/requirements.md` or a dedicated docs file before relying on them in implementation.
 - Treat `docs/requirements.md` and `docs/technical-design.md` as the source of truth before making architecture or scope decisions.
+- Before continuing implementation in a new session, read `docs/milestones.md` for the current WIP status, verification gaps, and recommended next steps.
 
 ## MVP Scope
 
