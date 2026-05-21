@@ -8,6 +8,7 @@ coverage/
 .turbo/
 .vite/
 apps/server/public/
+apps/server/data/
 
 # Runtime data
 data/*

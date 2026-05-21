@@ -286,6 +286,16 @@ pnpm --filter @mockforge/server start
 - `pnpm build` 通过。
 - 生产服务导入固定值配置后，`/api/users?page=1` 返回固定 `code: 0`、`message: "success"`、`page: 1`、`pageSize: 10`。
 
+### M10：开发端口调整
+
+状态：已完成。
+
+变更内容：
+
+- Vite 开发服务端口从 `5173` 调整为 `2668`。
+- 开发模式管理后台地址改为 `http://localhost:2668/__mockforge`。
+- `apps/server/data/` 已加入忽略规则，避免从 server 目录启动时生成的运行期配置误入 Git。
+
 ## 下次接手建议顺序
 
 1. 先运行 `git status --short --branch`。

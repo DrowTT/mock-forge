@@ -26,7 +26,7 @@ pnpm dev
 
 开发模式下：
 
-- 管理后台：`http://localhost:5173/__mockforge`
+- 管理后台：`http://localhost:2668/__mockforge`
 - 后端服务：`http://localhost:3000`
 - 健康检查：`http://localhost:3000/__mockforge/health`
 

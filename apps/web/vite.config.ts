@@ -5,7 +5,7 @@ export default defineConfig({
   base: "/__mockforge/",
   plugins: [react()],
   server: {
-    port: 5173,
+    port: 2668,
     proxy: {
       "/__mockforge/api": "http://localhost:3000",
       "/__mockforge/health": "http://localhost:3000"
