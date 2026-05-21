@@ -22,6 +22,7 @@ import { SchemaTreeEditor } from "./components/SchemaTreeEditor";
 
 type Tab = "apis" | "editor" | "import";
 type SchemaMode = "form" | "json";
+type RequestSchemaSection = "query" | "pathSchema" | "body";
 
 type FormState = {
   id: string;
@@ -38,6 +39,11 @@ type FormState = {
 
 const methods: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
 const runtimeOrigin = import.meta.env.VITE_MOCKFORGE_RUNTIME_ORIGIN || window.location.origin;
+const requestSchemaSections: Array<{ key: RequestSchemaSection; label: string; jsonLabel: string }> = [
+  { key: "query", label: "Query 参数", jsonLabel: "Query Schema" },
+  { key: "pathSchema", label: "Path 参数", jsonLabel: "Path Schema" },
+  { key: "body", label: "Body 参数", jsonLabel: "Body Schema" }
+];
 
 const sampleImport = {
   version: "1.0",
@@ -95,6 +101,7 @@ export function App() {
   const [activeTab, setActiveTab] = useState<Tab>("apis");
   const [form, setForm] = useState<FormState>(emptyForm);
   const [schemaMode, setSchemaMode] = useState<SchemaMode>("form");
+  const [activeRequestSchemaSection, setActiveRequestSchemaSection] = useState<RequestSchemaSection>("query");
   const [importText, setImportText] = useState(pretty(sampleImport));
   const [strategy, setStrategy] = useState<ImportStrategy>("upsert");
   const [token, setToken] = useState(() => localStorage.getItem("mockforge.adminToken") ?? "");
@@ -204,6 +211,7 @@ export function App() {
     setForm(apiToForm(api));
     setPreview("");
     setSchemaMode("form");
+    setActiveRequestSchemaSection("query");
     setActiveTab("editor");
   }
 
@@ -211,6 +219,7 @@ export function App() {
     setForm({ ...emptyForm, id: "" });
     setPreview("");
     setSchemaMode("form");
+    setActiveRequestSchemaSection("query");
     setActiveTab("editor");
   }
 
@@ -229,6 +238,7 @@ export function App() {
 
   const enabledCount = apis.filter((api) => api.enabled).length;
   const pageTitle = activeTab === "apis" ? "接口总览" : activeTab === "editor" ? (form.id ? "编辑接口" : "新建接口") : "AI 配置导入";
+  const currentRequestSchemaSection = requestSchemaSections.find((section) => section.key === activeRequestSchemaSection) ?? requestSchemaSections[0];
 
   return (
     <main className="shell">
@@ -441,36 +451,36 @@ export function App() {
 
               {schemaMode === "form" ? (
                 <div className="schema-section-stack">
-                  <SchemaField label="Query 参数" value={form.query} objectOnly onChange={(query) => setForm((current) => ({ ...current, query }))} />
+                  <RequestSchemaTabs active={activeRequestSchemaSection} form={form} onChange={setActiveRequestSchemaSection} />
                   <SchemaField
-                    label="Path 参数"
-                    value={form.pathSchema}
+                    label={currentRequestSchemaSection.label}
+                    value={form[currentRequestSchemaSection.key]}
                     objectOnly
-                    onChange={(pathSchema) => setForm((current) => ({ ...current, pathSchema }))}
+                    onChange={(value) => setForm((current) => ({ ...current, [currentRequestSchemaSection.key]: value }))}
                   />
-                  <SchemaField label="Body 参数" value={form.body} objectOnly onChange={(body) => setForm((current) => ({ ...current, body }))} />
                   <SchemaField
                     label="响应体"
                     value={form.responseBody}
+                    className="schema-response-block"
                     onChange={(responseBody) => setForm((current) => ({ ...current, responseBody }))}
                   />
                 </div>
               ) : (
-                <>
-                  <JsonField label="Query Schema" value={form.query} onChange={(query) => setForm((current) => ({ ...current, query }))} />
+                <div className="schema-section-stack">
+                  <RequestSchemaTabs active={activeRequestSchemaSection} form={form} onChange={setActiveRequestSchemaSection} />
                   <JsonField
-                    label="Path Schema"
-                    value={form.pathSchema}
-                    onChange={(pathSchema) => setForm((current) => ({ ...current, pathSchema }))}
+                    label={currentRequestSchemaSection.jsonLabel}
+                    value={form[currentRequestSchemaSection.key]}
+                    onChange={(value) => setForm((current) => ({ ...current, [currentRequestSchemaSection.key]: value }))}
                   />
-                  <JsonField label="Body Schema" value={form.body} onChange={(body) => setForm((current) => ({ ...current, body }))} />
                   <JsonField
                     label="Response Body Schema"
                     rows={12}
                     value={form.responseBody}
+                    className="schema-response-block"
                     onChange={(responseBody) => setForm((current) => ({ ...current, responseBody }))}
                   />
-                </>
+                </div>
               )}
 
               <div className="actions">
@@ -567,11 +577,29 @@ export function App() {
   );
 }
 
-function SchemaField(props: { label: string; value: string; objectOnly?: boolean; onChange: (value: string) => void }) {
+function RequestSchemaTabs(props: { active: RequestSchemaSection; form: FormState; onChange: (value: RequestSchemaSection) => void }) {
+  return (
+    <div className="schema-tabs" aria-label="请求参数类型">
+      {requestSchemaSections.map((section) => (
+        <button
+          className={props.active === section.key ? "active" : ""}
+          key={section.key}
+          type="button"
+          onClick={() => props.onChange(section.key)}
+        >
+          <span>{section.label}</span>
+          <small>{summarizeSchema(props.form[section.key])}</small>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SchemaField(props: { label: string; value: string; objectOnly?: boolean; className?: string; onChange: (value: string) => void }) {
   const parsed = tryParseJson(props.value);
 
   return (
-    <section className="schema-block">
+    <section className={["schema-block", props.className].filter(Boolean).join(" ")}>
       <div className="schema-block-head">
         <h3>{props.label}</h3>
       </div>
@@ -589,6 +617,32 @@ function SchemaField(props: { label: string; value: string; objectOnly?: boolean
       )}
     </section>
   );
+}
+
+function summarizeSchema(value: string): string {
+  const parsed = tryParseJson(value);
+  if (!parsed.success) {
+    return "需修正";
+  }
+
+  if (typeof parsed.value === "string") {
+    return "基础类型";
+  }
+
+  if (Array.isArray(parsed.value)) {
+    return "数组";
+  }
+
+  if (isFixedValueLike(parsed.value)) {
+    return "固定值";
+  }
+
+  if (isPlainRecord(parsed.value)) {
+    const count = Object.keys(parsed.value).length;
+    return count > 0 ? `${count} 字段` : "空";
+  }
+
+  return "未配置";
 }
 
 function ImportGuide() {
@@ -658,11 +712,11 @@ function ImportGuide() {
   );
 }
 
-function JsonField(props: { label: string; value: string; rows?: number; onChange: (value: string) => void }) {
+function JsonField(props: { label: string; value: string; rows?: number; className?: string; onChange: (value: string) => void }) {
   const id = `json-${props.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 
   return (
-    <label className="json-field" htmlFor={id}>
+    <label className={["json-field", props.className].filter(Boolean).join(" ")} htmlFor={id}>
       {props.label}
       <textarea
         className="json"
@@ -728,6 +782,14 @@ function tryParseJson(value: string): { success: true; value: unknown } | { succ
   } catch {
     return { success: false, message: "当前 JSON 不合法，修正后即可回到表单编辑。" };
   }
+}
+
+function isFixedValueLike(value: unknown): boolean {
+  return isPlainRecord(value) && Object.keys(value).length === 2 && "$type" in value && "$value" in value;
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function pretty(value: unknown): string {

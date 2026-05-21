@@ -560,11 +560,65 @@ textarea:focus {
   gap: 0;
 }
 
+.schema-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 18px 14px;
+  border-top: 1px solid var(--line);
+}
+
+.schema-tabs button {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  min-height: 54px;
+  padding: 8px 10px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  text-align: left;
+}
+
+.schema-tabs button:hover {
+  border-color: var(--accent);
+}
+
+.schema-tabs button.active {
+  color: #fff;
+  background: var(--black);
+  border-color: var(--black);
+}
+
+.schema-tabs span,
+.schema-tabs small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schema-tabs span {
+  color: inherit;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.schema-tabs small {
+  color: currentColor;
+  opacity: 0.74;
+  font-size: 12px;
+}
+
 .schema-block {
   display: grid;
   gap: 12px;
-  padding: 16px 18px;
+  padding: 0 18px 16px;
+}
+
+.schema-response-block {
   border-top: 1px solid var(--line);
+  padding-top: 16px;
 }
 
 .schema-block-head {
@@ -844,6 +898,10 @@ textarea:focus {
   .schema-node-row {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .schema-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .schema-root-name,

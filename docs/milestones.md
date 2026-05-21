@@ -8,13 +8,13 @@
 
 当前已经创建前后端 monorepo 骨架、共享类型与校验逻辑、Fastify 后端模块、React 管理后台代码，并完成 pnpm 安装、类型检查、测试、构建、生产单服务验证和浏览器验证。响应 schema 已支持固定值节点，可用于稳定返回 `code`、`page`、`pageSize` 等字段。
 
-管理后台已完成一轮可用性优化：通知改为右上角轻提示，新增入口收敛到接口列表页，接口列表提供显式编辑按钮，导入页补充给 AI 使用的 JSON 规范，接口新建/编辑页已支持“表单 / JSON”两种 schema 配置方式，其中表单模式使用树形字段编辑器。
+管理后台已完成一轮可用性优化：通知改为右上角轻提示，新增入口收敛到接口列表页，接口列表提供显式编辑按钮，导入页补充给 AI 使用的 JSON 规范，接口新建/编辑页已支持“表单 / JSON”两种 schema 配置方式，其中表单模式使用树形字段编辑器。请求参数区使用 Query / Path / Body tab 切换，响应体固定独立展示在请求参数下方。
 
 当前 Git 状态：
 
 - 远程仓库已配置为 `https://github.com/DrowTT/mock-forge.git`。
 - `main` 已追踪 `origin/main`。
-- `main` 已追踪 `origin/main`，最近一次远程提交以 `git log --oneline -1 origin/main` 为准。
+- 最近一次远程提交以 `git log --oneline -1 origin/main` 为准。
 - 当前新增代码在完成验证后应使用中文 commit 信息提交。
 - 包管理工具已明确为 `pnpm`，禁止使用 `npm`。
 
@@ -319,6 +319,26 @@ pnpm --filter @mockforge/server start
 - `pnpm build` 通过。
 - 生产单服务模式打开 `http://127.0.0.1:3100/__mockforge` 正常。
 - 浏览器验证接口列表、隐藏新建入口、显式编辑按钮、树形 schema 表单、响应预览和导入规范面板均正常。
+- 浏览器控制台无 error、warn 或 issue。
+
+### M12：请求参数 tab 与响应体分区
+
+状态：已完成并通过验证。
+
+变更内容：
+
+- 接口编辑页的 tab 只承载请求参数类型：`Query 参数`、`Path 参数`、`Body 参数`。
+- 响应体不再混在 tab 内，固定显示在请求参数编辑区下方。
+- tab 上保留字段数量摘要，例如 `2 字段`、`空`，方便不展开也能判断当前配置状态。
+- JSON 模式同步采用相同布局：请求参数通过 tab 切换，`Response Body Schema` 独立列在下方。
+
+已验证：
+
+- `pnpm typecheck` 通过。
+- `pnpm test` 通过。
+- `pnpm build` 通过。
+- 生产单服务模式打开 `http://127.0.0.1:3100/__mockforge` 正常。
+- 浏览器验证请求参数 tab 与独立响应体区域正常展示。
 - 浏览器控制台无 error、warn 或 issue。
 
 ## 下次接手建议顺序
