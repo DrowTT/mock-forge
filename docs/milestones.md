@@ -8,12 +8,14 @@
 
 当前已经创建前后端 monorepo 骨架、共享类型与校验逻辑、Fastify 后端模块、React 管理后台代码，并完成 pnpm 安装、类型检查、测试、构建、生产单服务验证和浏览器验证。响应 schema 已支持固定值节点，可用于稳定返回 `code`、`page`、`pageSize` 等字段。
 
+管理后台已完成一轮可用性优化：通知改为右上角轻提示，新增入口收敛到接口列表页，接口列表提供显式编辑按钮，导入页补充给 AI 使用的 JSON 规范，接口新建/编辑页已支持“表单 / JSON”两种 schema 配置方式，其中表单模式使用树形字段编辑器。
+
 当前 Git 状态：
 
 - 远程仓库已配置为 `https://github.com/DrowTT/mock-forge.git`。
 - `main` 已追踪 `origin/main`。
-- 上一次已推送提交是 `5c00e05 docs: add initial project requirements and design`。
-- 当前新增代码尚未提交。
+- `main` 已追踪 `origin/main`，最近一次远程提交以 `git log --oneline -1 origin/main` 为准。
+- 当前新增代码在完成验证后应使用中文 commit 信息提交。
 - 包管理工具已明确为 `pnpm`，禁止使用 `npm`。
 
 ## 已完成里程碑
@@ -296,11 +298,34 @@ pnpm --filter @mockforge/server start
 - 开发模式管理后台地址改为 `http://localhost:2668/__mockforge`。
 - `apps/server/data/` 已加入忽略规则，避免从 server 目录启动时生成的运行期配置误入 Git。
 
+### M11：管理后台配置体验优化
+
+状态：已完成并通过验证。
+
+变更内容：
+
+- 通知改为右上角 toast，不再占用文档流或挤压页面布局。
+- 侧边栏移除“新建”菜单项，新建入口改为接口列表页的“新增接口”按钮。
+- 接口列表行不再依赖点击标题进入编辑，右侧增加显式“编辑”按钮。
+- 新建/编辑页移除内层“新建接口 / 编辑接口”标题，使用顶部页面标题表达当前上下文。
+- 导入页增加“AI 导入 JSON 规范”面板，包含导入结构、字段类型、数组、固定值节点和完整示例。
+- 新建/编辑页新增 schema 树形表单编辑器，支持字段增删、字段名编辑、类型选择、对象、数组、固定值节点配置。
+- schema 编辑保留 JSON 模式，适合高级用户直接编辑导入格式。
+
+已验证：
+
+- `pnpm typecheck` 通过。
+- `pnpm test` 通过。
+- `pnpm build` 通过。
+- 生产单服务模式打开 `http://127.0.0.1:3100/__mockforge` 正常。
+- 浏览器验证接口列表、隐藏新建入口、显式编辑按钮、树形 schema 表单、响应预览和导入规范面板均正常。
+- 浏览器控制台无 error、warn 或 issue。
+
 ## 下次接手建议顺序
 
 1. 先运行 `git status --short --branch`。
 2. 如果本次成果还未提交，先检查 diff 后提交。
-3. 后续可补 README、Dockerfile、开发模式验证和字段树编辑器。
+3. 后续可补 README、Dockerfile、开发模式验证、配置持久化重启验证和更完整的部署说明。
 4. 继续开发前仍建议跑 `pnpm typecheck`、`pnpm test`、`pnpm build`。
 
 ## 当前不要误判的点
@@ -311,4 +336,4 @@ pnpm --filter @mockforge/server start
 - 已做浏览器验证。
 - 当前没有 Dockerfile。
 - 当前没有真实发布配置。
-- 当前管理后台只做了 JSON 编辑体验，还不是可视化字段树编辑器。
+- 当前管理后台已经支持 schema 树形表单编辑器，同时保留 JSON 编辑模式。

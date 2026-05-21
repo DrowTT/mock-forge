@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  BookOpen,
   CheckCircle2,
   Copy,
   FileJson2,
   Hammer,
   Import,
+  PencilLine,
   Play,
   Plus,
   RefreshCw,
@@ -16,8 +18,10 @@ import {
 } from "lucide-react";
 import type { ApiDefinition, HttpMethod, ImportConfig, ImportStrategy, SchemaNode } from "@mockforge/shared";
 import { ApiClient, type ValidationIssue } from "./api/client";
+import { SchemaTreeEditor } from "./components/SchemaTreeEditor";
 
 type Tab = "apis" | "editor" | "import";
+type SchemaMode = "form" | "json";
 
 type FormState = {
   id: string;
@@ -90,6 +94,7 @@ export function App() {
   const [apis, setApis] = useState<ApiDefinition[]>([]);
   const [activeTab, setActiveTab] = useState<Tab>("apis");
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [schemaMode, setSchemaMode] = useState<SchemaMode>("form");
   const [importText, setImportText] = useState(pretty(sampleImport));
   const [strategy, setStrategy] = useState<ImportStrategy>("upsert");
   const [token, setToken] = useState(() => localStorage.getItem("mockforge.adminToken") ?? "");
@@ -109,11 +114,28 @@ export function App() {
     void loadApis();
   }, []);
 
+  useEffect(() => {
+    if (!message && !error) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setMessage("");
+      setError("");
+    }, 3600);
+
+    return () => window.clearTimeout(timer);
+  }, [message, error]);
+
   async function loadApis() {
     await run(async () => {
-      const result = await client.listApis();
-      setApis(result.items);
+      await refreshApiList();
     });
+  }
+
+  async function refreshApiList() {
+    const result = await client.listApis();
+    setApis(result.items);
   }
 
   async function saveApi() {
@@ -122,8 +144,8 @@ export function App() {
       const saved = form.id ? await client.updateApi(form.id, payload) : await client.createApi(payload);
       setForm(apiToForm(saved));
       setActiveTab("apis");
+      await refreshApiList();
       setMessage(form.id ? "接口已更新" : "接口已创建");
-      await loadApis();
     });
   }
 
@@ -134,8 +156,8 @@ export function App() {
 
     await run(async () => {
       await client.deleteApi(api.id);
+      await refreshApiList();
       setMessage("接口已删除");
-      await loadApis();
     });
   }
 
@@ -181,12 +203,14 @@ export function App() {
   function editApi(api: ApiDefinition) {
     setForm(apiToForm(api));
     setPreview("");
+    setSchemaMode("form");
     setActiveTab("editor");
   }
 
   function createNew() {
     setForm({ ...emptyForm, id: "" });
     setPreview("");
+    setSchemaMode("form");
     setActiveTab("editor");
   }
 
@@ -204,6 +228,7 @@ export function App() {
   }
 
   const enabledCount = apis.filter((api) => api.enabled).length;
+  const pageTitle = activeTab === "apis" ? "接口总览" : activeTab === "editor" ? (form.id ? "编辑接口" : "新建接口") : "AI 配置导入";
 
   return (
     <main className="shell">
@@ -222,10 +247,6 @@ export function App() {
           <button className={activeTab === "apis" ? "active" : ""} onClick={() => setActiveTab("apis")}>
             <FileJson2 size={18} />
             接口
-          </button>
-          <button className={activeTab === "editor" ? "active" : ""} onClick={createNew}>
-            <Plus size={18} />
-            新建
           </button>
           <button className={activeTab === "import" ? "active" : ""} onClick={() => setActiveTab("import")}>
             <Import size={18} />
@@ -265,7 +286,7 @@ export function App() {
         <header className="topbar">
           <div>
             <p className="eyebrow">Self-hosted mock runtime</p>
-            <h1>{activeTab === "apis" ? "接口总览" : activeTab === "editor" ? "接口编辑" : "AI 配置导入"}</h1>
+            <h1>{pageTitle}</h1>
           </div>
           <div className="stats">
             <span>{apis.length} APIs</span>
@@ -274,7 +295,7 @@ export function App() {
         </header>
 
         {(message || error) && (
-          <div className={`notice ${error ? "danger" : "success"}`}>
+          <div className={`toast ${error ? "danger" : "success"}`} role={error ? "alert" : "status"}>
             {error ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
             <pre>{error || message}</pre>
           </div>
@@ -287,9 +308,16 @@ export function App() {
                 <h2>已配置接口</h2>
                 <p>{runtimeOrigin}</p>
               </div>
-              <button className="icon-button" onClick={loadApis} disabled={busy} title="刷新接口列表">
-                <RefreshCw size={18} />
-              </button>
+              <div className="panel-tools">
+                <button className="secondary" onClick={loadApis} disabled={busy} title="刷新接口列表">
+                  <RefreshCw size={17} />
+                  刷新
+                </button>
+                <button className="primary" onClick={createNew}>
+                  <Plus size={17} />
+                  新增接口
+                </button>
+              </div>
             </div>
 
             {apis.length === 0 ? (
@@ -306,12 +334,16 @@ export function App() {
                 {apis.map((api) => (
                   <article className="api-row" key={api.id}>
                     <div className={`method method-${api.method.toLowerCase()}`}>{api.method}</div>
-                    <button className="api-main" onClick={() => editApi(api)}>
+                    <div className="api-main">
                       <strong>{api.name}</strong>
                       <span>{api.path}</span>
-                    </button>
+                    </div>
                     <span className={api.enabled ? "status enabled" : "status disabled"}>{api.enabled ? "启用" : "停用"}</span>
                     <div className="row-actions">
+                      <button className="secondary row-edit" onClick={() => editApi(api)} title="编辑接口">
+                        <PencilLine size={16} />
+                        编辑
+                      </button>
                       <button className="icon-button" onClick={() => void copyUrl(api)} title="复制调用地址">
                         <Copy size={17} />
                       </button>
@@ -330,9 +362,12 @@ export function App() {
           <section className="editor-grid">
             <form className="panel editor-panel" onSubmit={(event) => event.preventDefault()}>
               <div className="panel-head">
-                <div>
-                  <h2>{form.id ? "编辑接口" : "新建接口"}</h2>
-                  <p>{form.path ? `${runtimeOrigin}${form.path}` : runtimeOrigin}</p>
+                <div className="endpoint-summary">
+                  <div className={`method method-${form.method.toLowerCase()}`}>{form.method}</div>
+                  <div>
+                    <p>{form.path ? `${runtimeOrigin}${form.path}` : runtimeOrigin}</p>
+                    <span>{form.id ? "更新后立即生效" : "保存后生成可调用 Mock API"}</span>
+                  </div>
                 </div>
                 <label className="switch">
                   <input
@@ -389,15 +424,54 @@ export function App() {
                 </label>
               </div>
 
-              <JsonField label="Query Schema" value={form.query} onChange={(query) => setForm((current) => ({ ...current, query }))} />
-              <JsonField label="Path Schema" value={form.pathSchema} onChange={(pathSchema) => setForm((current) => ({ ...current, pathSchema }))} />
-              <JsonField label="Body Schema" value={form.body} onChange={(body) => setForm((current) => ({ ...current, body }))} />
-              <JsonField
-                label="Response Body Schema"
-                rows={12}
-                value={form.responseBody}
-                onChange={(responseBody) => setForm((current) => ({ ...current, responseBody }))}
-              />
+              <div className="schema-toolbar">
+                <div>
+                  <h2>参数与响应结构</h2>
+                  <p>普通用户用表单配置字段；熟悉格式时可切回 JSON。</p>
+                </div>
+                <div className="segmented" aria-label="Schema 编辑模式">
+                  <button className={schemaMode === "form" ? "active" : ""} type="button" onClick={() => setSchemaMode("form")}>
+                    表单
+                  </button>
+                  <button className={schemaMode === "json" ? "active" : ""} type="button" onClick={() => setSchemaMode("json")}>
+                    JSON
+                  </button>
+                </div>
+              </div>
+
+              {schemaMode === "form" ? (
+                <div className="schema-section-stack">
+                  <SchemaField label="Query 参数" value={form.query} objectOnly onChange={(query) => setForm((current) => ({ ...current, query }))} />
+                  <SchemaField
+                    label="Path 参数"
+                    value={form.pathSchema}
+                    objectOnly
+                    onChange={(pathSchema) => setForm((current) => ({ ...current, pathSchema }))}
+                  />
+                  <SchemaField label="Body 参数" value={form.body} objectOnly onChange={(body) => setForm((current) => ({ ...current, body }))} />
+                  <SchemaField
+                    label="响应体"
+                    value={form.responseBody}
+                    onChange={(responseBody) => setForm((current) => ({ ...current, responseBody }))}
+                  />
+                </div>
+              ) : (
+                <>
+                  <JsonField label="Query Schema" value={form.query} onChange={(query) => setForm((current) => ({ ...current, query }))} />
+                  <JsonField
+                    label="Path Schema"
+                    value={form.pathSchema}
+                    onChange={(pathSchema) => setForm((current) => ({ ...current, pathSchema }))}
+                  />
+                  <JsonField label="Body Schema" value={form.body} onChange={(body) => setForm((current) => ({ ...current, body }))} />
+                  <JsonField
+                    label="Response Body Schema"
+                    rows={12}
+                    value={form.responseBody}
+                    onChange={(responseBody) => setForm((current) => ({ ...current, responseBody }))}
+                  />
+                </>
+              )}
 
               <div className="actions">
                 <button className="secondary" type="button" onClick={previewResponse} disabled={busy}>
@@ -463,30 +537,124 @@ export function App() {
               </div>
             </section>
 
-            <section className="panel preview-panel">
-              <div className="panel-head">
-                <div>
-                  <h2>校验结果</h2>
-                  <p>{issues.length ? `${issues.length} issues` : "ready"}</p>
+            <aside className="import-side">
+              <ImportGuide />
+              <section className="panel">
+                <div className="panel-head">
+                  <div>
+                    <h2>校验结果</h2>
+                    <p>{issues.length ? `${issues.length} issues` : "ready"}</p>
+                  </div>
                 </div>
-              </div>
-              {issues.length ? (
-                <div className="issue-list">
-                  {issues.map((issue, index) => (
-                    <div key={`${issue.path}-${index}`}>
-                      <strong>{issue.path}</strong>
-                      <span>{issue.message}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <pre className="code-preview">{pretty(sampleImport)}</pre>
-              )}
-            </section>
+                {issues.length ? (
+                  <div className="issue-list">
+                    {issues.map((issue, index) => (
+                      <div key={`${issue.path}-${index}`}>
+                        <strong>{issue.path}</strong>
+                        <span>{issue.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <pre className="code-preview compact">{pretty(sampleImport)}</pre>
+                )}
+              </section>
+            </aside>
           </section>
         )}
       </section>
     </main>
+  );
+}
+
+function SchemaField(props: { label: string; value: string; objectOnly?: boolean; onChange: (value: string) => void }) {
+  const parsed = tryParseJson(props.value);
+
+  return (
+    <section className="schema-block">
+      <div className="schema-block-head">
+        <h3>{props.label}</h3>
+      </div>
+      {parsed.success ? (
+        <SchemaTreeEditor
+          value={parsed.value as SchemaNode}
+          objectOnly={props.objectOnly}
+          onChange={(nextValue) => props.onChange(pretty(nextValue))}
+        />
+      ) : (
+        <div className="schema-json-error">
+          <p>{parsed.message}</p>
+          <textarea className="json" name={`schemaJsonFallback-${props.label}`} value={props.value} onChange={(event) => props.onChange(event.target.value)} />
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ImportGuide() {
+  return (
+    <section className="panel import-guide">
+      <div className="panel-head">
+        <div className="guide-title">
+          <BookOpen size={18} />
+          <div>
+            <h2>AI 导入 JSON 规范</h2>
+            <p>把这段规范交给 AI，要求它只输出 JSON。</p>
+          </div>
+        </div>
+      </div>
+      <div className="guide-content">
+        <ul className="guide-rules">
+          <li>
+            顶层必须是 <code>{'{ "version": "1.0", "apis": [] }'}</code>。
+          </li>
+          <li>
+            每个接口必须包含 <code>name</code>、<code>method</code>、<code>path</code>、<code>request</code>、<code>response</code>。
+          </li>
+          <li>
+            <code>request</code> 必须包含 <code>query</code>、<code>path</code>、<code>body</code> 三个对象，没有字段时写 <code>{'{}'}</code>。
+          </li>
+          <li>
+            字段类型只能用 <code>string</code>、<code>number</code>、<code>integer</code>、<code>boolean</code>、<code>datetime</code>、
+            <code>date</code>、<code>email</code>、<code>url</code>、<code>uuid</code>、<code>object</code>、<code>array</code>、
+            <code>null</code>。
+          </li>
+          <li>
+            数组用单元素数组描述，例如 <code>{'[{ "id": "integer" }]'}</code>。
+          </li>
+          <li>
+            固定值用 <code>{'{ "$type": "integer", "$value": 0 }'}</code>，<code>$value</code> 必须符合 <code>$type</code>。
+          </li>
+        </ul>
+        <pre className="guide-code">{`{
+  "version": "1.0",
+  "apis": [
+    {
+      "name": "获取用户列表",
+      "method": "GET",
+      "path": "/api/users",
+      "request": {
+        "query": { "page": "integer", "pageSize": "integer" },
+        "path": {},
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "code": { "$type": "integer", "$value": 0 },
+          "message": { "$type": "string", "$value": "success" },
+          "data": {
+            "list": [{ "id": "integer", "name": "string" }],
+            "page": { "$type": "integer", "$value": 1 },
+            "pageSize": { "$type": "integer", "$value": 10 }
+          }
+        }
+      }
+    }
+  ]
+}`}</pre>
+      </div>
+    </section>
   );
 }
 
@@ -551,6 +719,14 @@ function parseJson(value: string, label: string): unknown {
     return JSON.parse(value);
   } catch {
     throw new Error(`${label} 不是合法 JSON`);
+  }
+}
+
+function tryParseJson(value: string): { success: true; value: unknown } | { success: false; message: string } {
+  try {
+    return { success: true, value: JSON.parse(value) };
+  } catch {
+    return { success: false, message: "当前 JSON 不合法，修正后即可回到表单编辑。" };
   }
 }
 
