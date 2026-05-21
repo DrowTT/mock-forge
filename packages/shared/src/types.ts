@@ -4,7 +4,14 @@ export type HttpMethod = (typeof HTTP_METHODS)[number];
 
 export type PrimitiveType = (typeof PRIMITIVE_TYPES)[number];
 
-export type SchemaNode = PrimitiveType | { [fieldName: string]: SchemaNode } | [SchemaNode];
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [fieldName: string]: JsonValue };
+
+export type FixedValueSchemaNode = {
+  $type: PrimitiveType;
+  $value: JsonValue;
+};
+
+export type SchemaNode = PrimitiveType | FixedValueSchemaNode | { [fieldName: string]: SchemaNode } | [SchemaNode];
 
 export type ObjectSchema = Record<string, SchemaNode>;
 

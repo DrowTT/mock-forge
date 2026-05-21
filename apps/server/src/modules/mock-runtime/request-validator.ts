@@ -1,4 +1,4 @@
-import type { ApiDefinition, ObjectSchema, SchemaNode, ValidationIssue } from "@mockforge/shared";
+import { isFixedValueSchemaNode, type ApiDefinition, type JsonValue, type ObjectSchema, type SchemaNode, type ValidationIssue } from "@mockforge/shared";
 
 export type RuntimeRequestParts = {
   path: Record<string, unknown>;
@@ -54,6 +54,10 @@ function validateNode(schema: SchemaNode, value: unknown, path: string): Validat
     return value.flatMap((item, index) => validateNode(schema[0], item, `${path}[${index}]`));
   }
 
+  if (isFixedValueSchemaNode(schema)) {
+    return validateFixedValue(schema.$type, schema.$value, value, path);
+  }
+
   if (!isRecord(value)) {
     return [{ path, message: "字段必须是对象" }];
   }
@@ -65,6 +69,20 @@ function validateNode(schema: SchemaNode, value: unknown, path: string): Validat
 
     return validateNode(childSchema, value[key], `${path}.${key}`);
   });
+}
+
+function validateFixedValue(type: string, expected: JsonValue, value: unknown, path: string): ValidationIssue[] {
+  const coerced = coerceRuntimeValue(type, value);
+
+  if (coerced === invalidValue) {
+    return [{ path, message: `字段必须是 ${type}` }];
+  }
+
+  if (!jsonEquals(coerced, expected)) {
+    return [{ path, message: `字段必须等于固定值 ${JSON.stringify(expected)}` }];
+  }
+
+  return [];
 }
 
 function validatePrimitive(type: string, value: unknown, path: string): ValidationIssue[] {
@@ -123,4 +141,64 @@ function isBooleanLike(value: unknown): boolean {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+const invalidValue = Symbol("invalid");
+
+function coerceRuntimeValue(type: string, value: unknown): JsonValue | typeof invalidValue {
+  switch (type) {
+    case "string":
+    case "email":
+    case "url":
+    case "uuid":
+    case "datetime":
+    case "date":
+      return typeof value === "string" ? value : invalidValue;
+    case "number":
+      return isFiniteNumber(value) ? Number(value) : invalidValue;
+    case "integer":
+      return isInteger(value) ? Number(value) : invalidValue;
+    case "boolean":
+      if (typeof value === "boolean") {
+        return value;
+      }
+
+      if (value === "true") {
+        return true;
+      }
+
+      if (value === "false") {
+        return false;
+      }
+
+      return invalidValue;
+    case "object":
+      return isJsonValue(value) && isRecord(value) ? value : invalidValue;
+    case "array":
+      return isJsonValue(value) && Array.isArray(value) ? value : invalidValue;
+    case "null":
+      return value === null ? null : invalidValue;
+    default:
+      return invalidValue;
+  }
+}
+
+function jsonEquals(left: JsonValue, right: JsonValue): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function isJsonValue(value: unknown): value is JsonValue {
+  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return typeof value !== "number" || Number.isFinite(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.every(isJsonValue);
+  }
+
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return Object.values(value).every(isJsonValue);
 }

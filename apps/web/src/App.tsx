@@ -50,10 +50,12 @@ const sampleImport = {
       response: {
         status: 200,
         body: {
-          code: "integer",
-          message: "string",
+          code: { $type: "integer", $value: 0 },
+          message: { $type: "string", $value: "success" },
           data: {
             list: [{ id: "integer", name: "string", email: "email", active: "boolean" }],
+            page: { $type: "integer", $value: 1 },
+            pageSize: { $type: "integer", $value: 10 },
             total: "integer"
           }
         }
@@ -73,10 +75,12 @@ const emptyForm: FormState = {
   pathSchema: pretty({}),
   body: pretty({}),
   responseBody: pretty({
-    code: "integer",
-    message: "string",
+    code: { $type: "integer", $value: 0 },
+    message: { $type: "string", $value: "success" },
     data: {
       list: [{ id: "integer", name: "string", email: "email", active: "boolean" }],
+      page: { $type: "integer", $value: 1 },
+      pageSize: { $type: "integer", $value: 10 },
       total: "integer"
     }
   })

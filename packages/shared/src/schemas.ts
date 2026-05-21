@@ -11,8 +11,10 @@ import {
 import { extractPathParams, isValidApiPath, methodPathKey, normalizeApiPath } from "./path-utils.js";
 import type {
   ApiDefinition,
+  FixedValueSchemaNode,
   ImportApiDefinition,
   ImportConfig,
+  JsonValue,
   ObjectSchema,
   SchemaNode,
   StoredConfig,
@@ -21,6 +23,7 @@ import type {
 } from "./types.js";
 
 const primitiveTypeSet = new Set<string>(PRIMITIVE_TYPES);
+const fixedValueNodeKeys = new Set(["$type", "$value"]);
 
 const baseRequestSchema = z.object({
   query: z.record(z.string(), z.unknown()).default({}),
@@ -123,6 +126,16 @@ function visitSchemaNode(
     return;
   }
 
+  if (isFixedValueSchemaNode(value)) {
+    if (objectOnly) {
+      issues.push({ path, message: "该位置必须是对象 schema，不能是固定值节点" });
+      return;
+    }
+
+    issues.push(...validateFixedValueSchemaNode(value, path));
+    return;
+  }
+
   for (const [key, child] of Object.entries(value)) {
     state.fields += 1;
     const childPath = `${path}.${key}`;
@@ -144,6 +157,77 @@ function visitSchemaNode(
 
     visitSchemaNode(child, childPath, depth + 1, issues, state, false);
   }
+}
+
+export function isFixedValueSchemaNode(value: unknown): value is FixedValueSchemaNode {
+  if (!isPlainRecord(value)) {
+    return false;
+  }
+
+  const keys = Object.keys(value);
+  return keys.length === 2 && keys.every((key) => fixedValueNodeKeys.has(key)) && "$type" in value && "$value" in value;
+}
+
+export function validateFixedValueSchemaNode(value: FixedValueSchemaNode, path: string): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  if (!primitiveTypeSet.has(value.$type)) {
+    issues.push({ path: `${path}.$type`, message: `不支持的字段类型：${String(value.$type)}` });
+    return issues;
+  }
+
+  if (!isJsonValue(value.$value)) {
+    issues.push({ path: `${path}.$value`, message: "固定值必须是合法 JSON 值" });
+    return issues;
+  }
+
+  if (!fixedValueMatchesType(value.$type, value.$value)) {
+    issues.push({ path: `${path}.$value`, message: `固定值必须符合 ${value.$type} 类型` });
+  }
+
+  return issues;
+}
+
+export function fixedValueMatchesType(type: string, value: JsonValue): boolean {
+  switch (type) {
+    case "string":
+    case "datetime":
+    case "date":
+    case "email":
+    case "url":
+    case "uuid":
+      return typeof value === "string";
+    case "number":
+      return typeof value === "number" && Number.isFinite(value);
+    case "integer":
+      return typeof value === "number" && Number.isInteger(value);
+    case "boolean":
+      return typeof value === "boolean";
+    case "object":
+      return isPlainRecord(value);
+    case "array":
+      return Array.isArray(value);
+    case "null":
+      return value === null;
+    default:
+      return false;
+  }
+}
+
+function isJsonValue(value: unknown): value is JsonValue {
+  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return typeof value !== "number" || Number.isFinite(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.every(isJsonValue);
+  }
+
+  if (!isPlainRecord(value)) {
+    return false;
+  }
+
+  return Object.entries(value).every(([key, child]) => !UNSAFE_FIELD_NAMES.has(key) && isJsonValue(child));
 }
 
 export function validateImportConfig(input: unknown): ValidationResult<ImportConfig> {

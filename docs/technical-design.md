@@ -273,8 +273,22 @@ type PrimitiveType =
   | "object"
   | "array";
 
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [fieldName: string]: JsonValue };
+
+type FixedValueSchemaNode = {
+  $type: PrimitiveType;
+  $value: JsonValue;
+};
+
 type SchemaNode =
   | PrimitiveType
+  | FixedValueSchemaNode
   | { [fieldName: string]: SchemaNode }
   | [SchemaNode];
 ```
@@ -285,6 +299,21 @@ type SchemaNode =
 - 结构化数组使用单元素数组表达，例如 `[ { "id": "integer" } ]`。
 - 字符串 `"object"` 表示泛型空对象，生成 `{}`。
 - 字符串 `"array"` 表示泛型空数组，生成 `[]`。
+- 固定值使用 `{ "$type": "integer", "$value": 1 }` 表达，生成时原样返回 `$value`。
+
+固定值示例：
+
+```json
+{
+  "code": { "$type": "integer", "$value": 0 },
+  "success": { "$type": "boolean", "$value": true },
+  "data": {
+    "page": { "$type": "integer", "$value": 1 },
+    "pageSize": { "$type": "integer", "$value": 10 },
+    "list": [{ "id": "integer", "name": "string" }]
+  }
+}
+```
 
 ## 8. 配置校验设计
 
@@ -332,6 +361,9 @@ type SchemaNode =
 - 对象节点的 key 必须是安全字段名。
 - 禁止字段名为 `__proto__`、`prototype`、`constructor`。
 - 数组节点必须且只能包含一个元素。
+- 固定值节点必须且只能包含 `$type` 和 `$value`。
+- 固定值节点的 `$type` 必须属于允许的字段类型。
+- 固定值节点的 `$value` 必须是合法 JSON 值，并且必须符合 `$type`。
 - 最大嵌套深度建议限制为 20。
 - 单个接口字段总数建议限制为 300。
 
@@ -541,6 +573,7 @@ MVP 不支持通配符路径，例如 `/api/*`。
 | `array` | `[]` |
 | object schema | 递归生成对象字段 |
 | array schema | 生成多个元素组成的数组 |
+| fixed value schema | 返回配置中的 `$value` |
 
 ### 11.2 数组长度
 

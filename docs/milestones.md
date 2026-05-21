@@ -6,7 +6,7 @@
 
 项目已经进入 MVP 开发阶段，第一版可运行骨架已经完成基础验证。
 
-当前已经创建前后端 monorepo 骨架、共享类型与校验逻辑、Fastify 后端模块、React 管理后台代码，并完成 pnpm 安装、类型检查、测试、构建、生产单服务验证和浏览器验证。
+当前已经创建前后端 monorepo 骨架、共享类型与校验逻辑、Fastify 后端模块、React 管理后台代码，并完成 pnpm 安装、类型检查、测试、构建、生产单服务验证和浏览器验证。响应 schema 已支持固定值节点，可用于稳定返回 `code`、`page`、`pageSize` 等字段。
 
 当前 Git 状态：
 
@@ -263,15 +263,28 @@ pnpm --filter @mockforge/server start
 
 ### M8：提交当前开发成果
 
-状态：未开始。
+状态：已完成。
 
-建议现在提交。
+已提交并推送第一版可运行骨架。
 
-推荐提交信息：
+### M9：Schema 固定值节点
 
-```text
-feat: scaffold mockforge mvp runtime and admin ui
-```
+状态：已完成并通过验证。
+
+新增能力：
+
+- `SchemaNode` 支持固定值节点：`{ "$type": "integer", "$value": 1 }`。
+- 随机生成器遇到固定值节点时直接返回 `$value`。
+- 固定值节点会校验 `$type` 是否受支持，以及 `$value` 是否符合 `$type`。
+- 管理后台默认示例已加入固定 `code`、`message`、`page`、`pageSize`。
+- 需求文档、技术设计和 README 已补充固定值格式。
+
+已验证：
+
+- `pnpm typecheck` 通过。
+- `pnpm test` 通过。
+- `pnpm build` 通过。
+- 生产服务导入固定值配置后，`/api/users?page=1` 返回固定 `code: 0`、`message: "success"`、`page: 1`、`pageSize: 10`。
 
 ## 下次接手建议顺序
 

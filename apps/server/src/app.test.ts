@@ -38,8 +38,10 @@ describe("MockForge server", () => {
               response: {
                 status: 200,
                 body: {
-                  code: "integer",
+                  code: { $type: "integer", $value: 0 },
                   data: {
+                    page: { $type: "integer", $value: 1 },
+                    pageSize: { $type: "integer", $value: 10 },
                     list: [{ id: "integer", email: "email" }]
                   }
                 }
@@ -59,6 +61,13 @@ describe("MockForge server", () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toHaveProperty("data.list");
+    expect(response.json()).toMatchObject({
+      code: 0,
+      data: {
+        page: 1,
+        pageSize: 10
+      }
+    });
 
     await app.close();
   });

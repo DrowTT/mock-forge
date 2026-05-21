@@ -1,5 +1,5 @@
 import { faker } from "@faker-js/faker";
-import type { SchemaNode } from "@mockforge/shared";
+import { isFixedValueSchemaNode, type JsonValue, type SchemaNode } from "@mockforge/shared";
 
 export type GenerateOptions = {
   arrayMinLength: number;
@@ -16,11 +16,19 @@ export function generateMockData(schema: SchemaNode, options: GenerateOptions): 
     return Array.from({ length }, () => generateMockData(schema[0], options));
   }
 
+  if (isFixedValueSchemaNode(schema)) {
+    return cloneJsonValue(schema.$value);
+  }
+
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(schema)) {
     result[key] = generateMockData(value, options);
   }
   return result;
+}
+
+function cloneJsonValue(value: JsonValue): JsonValue {
+  return value === null || typeof value !== "object" ? value : JSON.parse(JSON.stringify(value));
 }
 
 function generatePrimitive(type: string): unknown {

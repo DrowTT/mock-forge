@@ -47,6 +47,22 @@ pnpm start
 
 生产模式下，Fastify 会托管构建后的管理后台，并同时提供管理 API 和用户创建的 Mock API。
 
+## Schema 固定值
+
+响应字段默认按类型随机生成。如果希望某个字段稳定返回固定值，例如 `code`、`page`、`pageSize`，可以使用固定值节点：
+
+```json
+{
+  "code": { "$type": "integer", "$value": 0 },
+  "message": { "$type": "string", "$value": "success" },
+  "data": {
+    "page": { "$type": "integer", "$value": 1 },
+    "pageSize": { "$type": "integer", "$value": 10 },
+    "list": [{ "id": "integer", "name": "string" }]
+  }
+}
+```
+
 ## 环境变量
 
 参考 `.env.example`。
