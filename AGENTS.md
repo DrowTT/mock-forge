@@ -38,10 +38,18 @@ Key persistence rule:
 ## Package Manager
 
 - Use `pnpm` only.
-- Do not use `npm` commands in this repository.
+- Do not use `npm` commands in this repository under any circumstance.
+- Do not add npm-oriented instructions, scripts, lockfiles, or workflow examples.
 - Keep `pnpm-workspace.yaml` as the workspace source of truth.
 - Keep `pnpm-lock.yaml` committed.
 - When adding scripts or documentation commands, use `pnpm` syntax.
+
+## Git Workflow
+
+- Commit messages must be written in Chinese.
+- Keep commit messages concise and action-oriented.
+- Prefer one coherent commit per completed development task.
+- Do not commit generated build outputs, dependency folders, runtime data, or temporary files.
 
 ## Working Principles
 
@@ -83,6 +91,10 @@ The MVP should not include:
 - Keep product requirements and examples under `docs/`.
 - Keep AI import examples precise enough that another AI can output valid JSON without guessing.
 - When changing the import format, update examples and validation expectations together.
+- After completing development work, update `docs/milestones.md` before reporting the task as done.
+- Keep `docs/milestones.md` reader-first and concise: it should summarize current status, verified commands, active risks, and next steps.
+- Do not let `docs/milestones.md` grow indefinitely. When old milestone details are no longer needed for immediate continuation, move them into an archive file such as `docs/archive/milestones-YYYY-MM.md` and keep only a short link or summary in the main milestones document.
+- Prefer updating the current milestone summary over appending long chronological logs.
 
 ## Language
 
